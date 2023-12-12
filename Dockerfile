@@ -9,5 +9,6 @@ WORKDIR /code
 COPY requirements.txt /code/
 # RUN pip install "cython<3.0.0" && pip install --no-build-isolation pyyaml==6.0
 # RUN pip install setuptools_rust docker-compose
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 RUN pip install -r requirements.txt
 COPY . /code/
