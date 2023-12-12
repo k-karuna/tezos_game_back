@@ -1,3 +1,4 @@
+cryptography==3.3.1
 Django==5.0
 djangorestframework==3.14.0
 pytezos==3.10.3
