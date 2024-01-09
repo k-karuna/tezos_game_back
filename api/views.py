@@ -1,11 +1,16 @@
 import codecs
+import requests
+import json
+
 from django.core.exceptions import ObjectDoesNotExist
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from django.conf import settings
+from pytezos import Key
 from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from api.models import TezosUser, get_payload_for_sign
 from api.serializers import TezosUserSerializer
-from pytezos import Key
 
 
 class GetPayload(APIView):
@@ -65,3 +70,18 @@ class VerifyPayload(APIView):
         start_prefix = "0501"
         payload_bytes = start_prefix + padded_bytes_length + bytes_hex
         return payload_bytes
+
+
+class VerifyCaptcha(APIView):
+    def post(self, request):
+        captcha_value = request.data['g-recaptcha-response']
+        if not captcha_value:
+            return Response({'error': 'Param "g-recaptcha-response" not provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        url = 'https://www.google.com/recaptcha/api/siteverify'
+        verified_data = {
+            'secret': settings.CAPTCHA_SECRET,
+            'response': captcha_value
+        }
+        google_validation_response = requests.post(url, data=verified_data)
+        return Response(json.loads(google_validation_response.text), status=status.HTTP_200_OK)
