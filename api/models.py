@@ -19,6 +19,9 @@ class TezosUser(models.Model):
     success_sign = models.BooleanField(default=False)
     registration_date = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return self.address
+
 
 class GameSession(models.Model):
     CREATED = 0
@@ -35,10 +38,37 @@ class GameSession(models.Model):
     status = models.PositiveSmallIntegerField(choices=GAME_STATUS, default=CREATED)
 
 
-class TransferedToken(models.Model):
-    contract = models.CharField(max_length=36)
+class Token(models.Model):
+    name = models.CharField(max_length=256)
+    value = models.PositiveSmallIntegerField()
     token_id = models.PositiveIntegerField()
+
+    @property
+    def drop_chance(self):
+        all_tokens = Token.objects.all()
+        total_values = sum(token.value for token in all_tokens)
+        result = self.value * 100 / total_values
+        return round(result, 2)
+
+    def __str__(self):
+        return f'{self.name}, drop chance: {self.drop_chance}%'
+
+
+class TokenTransfer(models.Model):
+    contract = models.CharField(max_length=36)
+    token = models.ForeignKey(Token, on_delete=models.SET_NULL, blank=True, null=True)
     amount = models.PositiveSmallIntegerField()
     game = models.ForeignKey(GameSession, on_delete=models.SET_NULL, blank=True, null=True)
     player = models.ForeignKey(TezosUser, on_delete=models.SET_NULL, blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.token} - {self.date}'
+
+
+class BossDrop(models.Model):
+    level = models.PositiveSmallIntegerField()
+    drop_chance = models.FloatField()
+
+    def __str__(self):
+        return f'{self.level} - {self.drop_chance}%'
