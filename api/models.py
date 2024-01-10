@@ -23,6 +23,14 @@ class TezosUser(models.Model):
         return self.address
 
 
+class Boss(models.Model):
+    level = models.PositiveSmallIntegerField()
+    drop_chance = models.FloatField()
+
+    def __str__(self):
+        return f'{self.level} - {self.drop_chance}%'
+
+
 class GameSession(models.Model):
     CREATED = 0
     ENDED = 1
@@ -36,6 +44,10 @@ class GameSession(models.Model):
     hash = models.CharField(max_length=32, default=get_uuid_hash, unique=True)
     player = models.ForeignKey(TezosUser, on_delete=models.SET_NULL, blank=True, null=True)
     status = models.PositiveSmallIntegerField(choices=GAME_STATUS, default=CREATED)
+    creation_time = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.creation_time} - {self.player}'
 
 
 class Token(models.Model):
@@ -54,21 +66,15 @@ class Token(models.Model):
         return f'{self.name}, drop chance: {self.drop_chance}%'
 
 
-class TokenTransfer(models.Model):
-    contract = models.CharField(max_length=36)
-    token = models.ForeignKey(Token, on_delete=models.SET_NULL, blank=True, null=True)
-    amount = models.PositiveSmallIntegerField()
+class Drop(models.Model):
     game = models.ForeignKey(GameSession, on_delete=models.SET_NULL, blank=True, null=True)
-    player = models.ForeignKey(TezosUser, on_delete=models.SET_NULL, blank=True, null=True)
-    date = models.DateTimeField(auto_now_add=True)
+    boss = models.ForeignKey(Boss, on_delete=models.SET_NULL, blank=True, null=True)
+    dropped_token = models.ForeignKey(Token, on_delete=models.SET_NULL, blank=True, null=True)
+    transfer_date = models.DateTimeField(blank=True, null=True)
+
+    @property
+    def token_transfered(self):
+        return self.transfer_date is not None
 
     def __str__(self):
-        return f'{self.token} - {self.date}'
-
-
-class BossDrop(models.Model):
-    level = models.PositiveSmallIntegerField()
-    drop_chance = models.FloatField()
-
-    def __str__(self):
-        return f'{self.level} - {self.drop_chance}%'
+        return f'{self.game}, {self.dropped_token}'

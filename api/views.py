@@ -1,6 +1,7 @@
 import codecs
 import requests
 import json
+import random
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
@@ -9,7 +10,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import TezosUser, get_payload_for_sign
+from api.models import TezosUser, GameSession, Token, Boss, Drop, get_payload_for_sign
 from api.serializers import TezosUserSerializer
 
 
@@ -85,3 +86,48 @@ class VerifyCaptcha(APIView):
         }
         google_validation_response = requests.post(url, data=verified_data)
         return Response(json.loads(google_validation_response.text), status=status.HTTP_200_OK)
+
+
+class StartGame(APIView):
+    def get(self, request):
+        address = request.query_params.get('address')
+        if not address:
+            return Response({'error': 'Provide "address" parameter with user\'s Tezos address.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = TezosUser.objects.get(address=address)
+            if not user.success_sign:
+                return Response({'error': f'This user did not yet successfully signed payload.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            game = GameSession(player=user)
+            game.save()
+            all_bosses = Boss.objects.all()
+
+            for boss in all_bosses:
+                random_number_for_boss = random.random() * 100
+                boss_dropped = random_number_for_boss <= boss.drop_chance
+                if boss_dropped:
+                    all_tokens = Token.objects.all()
+                    total_probability = sum(token.drop_chance for token in all_tokens)
+                    random_value = random.uniform(0, total_probability)
+                    probability_sum = 0
+                    chosen_token = None
+                    for token in all_tokens:
+                        probability_sum += token.drop_chance
+                        if random_value <= probability_sum:
+                            chosen_token = token
+                            break
+                    drop = Drop(game=game, boss=boss, dropped_token=chosen_token)
+                    drop.save()
+
+            response_data = {
+                'game_id': game.hash,
+                'game_drop': [{'boss': drop.boss.id, 'token': drop.dropped_token.token_id}
+                              for drop in Drop.objects.filter(game=game)]
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except ObjectDoesNotExist as error:
+            return Response({'error': f'Tezos user with this address not found: {error}'},
+                            status=status.HTTP_400_BAD_REQUEST)
