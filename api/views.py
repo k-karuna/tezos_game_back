@@ -3,8 +3,9 @@ import requests
 import json
 import random
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.conf import settings
+from django.utils import timezone
 from pytezos import Key
 from rest_framework import status
 from rest_framework.response import Response
@@ -12,6 +13,7 @@ from rest_framework.views import APIView
 
 from api.models import TezosUser, GameSession, Token, Boss, Drop, get_payload_for_sign
 from api.serializers import TezosUserSerializer
+from api.tasks import end_game_session
 
 
 class GetPayload(APIView):
@@ -96,15 +98,25 @@ class StartGame(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = TezosUser.objects.get(address=address)
-            if not user.success_sign:
-                return Response({'error': f'This user did not yet successfully signed payload.'},
-                                status=status.HTTP_400_BAD_REQUEST)
+            tezos_user = TezosUser.objects.get(address=address)
+        except ObjectDoesNotExist as error:
+            return Response({'error': f'Tezos user with this address not found: {error}'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not tezos_user.success_sign:
+            return Response({'error': f'This user did not yet successfully signed payload.'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-            game = GameSession(player=user)
+        try:
+            game, created = GameSession.objects.get_or_create(player=tezos_user, status=GameSession.CREATED)
+        except MultipleObjectsReturned:
+            GameSession.objects.filter(player=tezos_user, status=GameSession.CREATED).delete()
+            game = GameSession(player=tezos_user, status=GameSession.CREATED)
             game.save()
-            all_bosses = Boss.objects.all()
+            created = True
 
+        if created:
+            end_game_session.s(game.hash).apply_async(countdown=settings.TERMINATE_GAME_SESSION_SECONDS)
+            all_bosses = Boss.objects.all()
             for boss in all_bosses:
                 random_number_for_boss = random.random() * 100
                 boss_dropped = random_number_for_boss <= boss.drop_chance
@@ -122,12 +134,48 @@ class StartGame(APIView):
                     drop = Drop(game=game, boss=boss, dropped_token=chosen_token)
                     drop.save()
 
-            response_data = {
-                'game_id': game.hash,
-                'game_drop': [{'boss': drop.boss.id, 'token': drop.dropped_token.token_id}
-                              for drop in Drop.objects.filter(game=game)]
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+        response_data = {
+            'game_id': game.hash,
+            'game_drop': [{'boss': drop.boss.id, 'token': drop.dropped_token.token_id}
+                          for drop in Drop.objects.filter(game=game)],
+            'is_new': created
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class PauseGame(APIView):
+    def get(self, request):
+        game_hash = request.query_params.get('game_id')
+        if not game_hash:
+            return Response({'error': 'Provide "game_id" parameter.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            game = GameSession.objects.get(hash=game_hash)
         except ObjectDoesNotExist as error:
-            return Response({'error': f'Tezos user with this address not found: {error}'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': f'Game with this id not found: {error}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if game.status is not GameSession.CREATED:
+            return Response({'error': f'Game status is not active.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        game.status = GameSession.PAUSED
+        game.pause_init_time = timezone.now()
+        game.save()
+        return Response({'response': f'Game {game_hash} paused.'}, status=status.HTTP_200_OK)
+
+
+class UnpauseGame(APIView):
+    def get(self, request):
+        game_hash = request.query_params.get('game_id')
+        if not game_hash:
+            return Response({'error': 'Provide "game_id" parameter.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            game = GameSession.objects.get(hash=game_hash)
+        except ObjectDoesNotExist as error:
+            return Response({'error': f'Game with this id not found: {error}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if game.status is not GameSession.PAUSED:
+            return Response({'error': f'Game status is not paused.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        game.status = GameSession.CREATED
+        game.seconds_on_pause += (timezone.now() - game.pause_init_time).total_seconds()
+        game.save()
+        return Response({'response': f'Game {game_hash} unpaused.'}, status=status.HTTP_200_OK)

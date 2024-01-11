@@ -133,5 +133,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
+    "http://localhost:6011",
     "http://45.66.248.137:6011"
 ]
+
+# Celery settings
+CELERY_BROKER_URL = f'redis://{"redis" if os.environ.get("DOCKER_CONTAINER", None) is not None else "localhost"}:6379/0'
+
+TERMINATE_GAME_SESSION_SECONDS = 60

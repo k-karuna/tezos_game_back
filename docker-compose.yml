@@ -3,10 +3,30 @@ version: '3'
 services:
   django:
     build: .
-    command: python manage.py runserver 0.0.0.0:6011
+    command: >
+      sh -c "python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:6011"
     ports:
       - "6011:6011"
     volumes:
       - .:/code
     env_file:
       - .env
+    environment:
+      - DOCKER_CONTAINER=true
+
+  redis:
+    image: redis:7.2.4-alpine
+    restart: always
+    expose:
+      - '6379'
+
+  celery:
+    build: .
+    depends_on:
+      - django
+      - redis
+    command: celery -A tezos_game_back worker --loglevel=info
+    volumes:
+      - .:/code
+

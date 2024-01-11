@@ -35,16 +35,20 @@ class GameSession(models.Model):
     CREATED = 0
     ENDED = 1
     ABANDONED = 2
+    PAUSED = 3
     GAME_STATUS = [
         (CREATED, "Created"),
         (ENDED, "Ended"),
         (ABANDONED, "Abandoned"),
+        (PAUSED, "Paused"),
     ]
 
     hash = models.CharField(max_length=32, default=get_uuid_hash, unique=True)
     player = models.ForeignKey(TezosUser, on_delete=models.SET_NULL, blank=True, null=True)
     status = models.PositiveSmallIntegerField(choices=GAME_STATUS, default=CREATED)
     creation_time = models.DateTimeField(auto_now_add=True)
+    pause_init_time = models.DateTimeField(blank=True, null=True)
+    seconds_on_pause = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f'{self.creation_time} - {self.player}'
