@@ -12,6 +12,8 @@ services:
       - .:/code
     env_file:
       - .env
+    environment:
+      - DOCKER_CONTAINER=true
 
   redis:
     image: redis:7.2.4-alpine
