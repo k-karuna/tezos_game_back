@@ -6,7 +6,7 @@ import random
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.conf import settings
 from django.utils import timezone
-from pytezos import Key
+from pytezos import pytezos, Key
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -77,9 +77,9 @@ class VerifyPayload(APIView):
 
 class VerifyCaptcha(APIView):
     def post(self, request):
-        captcha_value = request.data['g-recaptcha-response']
+        captcha_value = request.data['captcha']
         if not captcha_value:
-            return Response({'error': 'Param "g-recaptcha-response" not provided.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Param "captcha" not provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
         url = 'https://www.google.com/recaptcha/api/siteverify'
         verified_data = {
@@ -147,7 +147,7 @@ class PauseGame(APIView):
     def get(self, request):
         game_hash = request.query_params.get('game_id')
         if not game_hash:
-            return Response({'error': 'Provide "game_id" parameter.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Parameter "game_id" not found.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             game = GameSession.objects.get(hash=game_hash)
         except ObjectDoesNotExist as error:
@@ -179,3 +179,78 @@ class UnpauseGame(APIView):
         game.seconds_on_pause += (timezone.now() - game.pause_init_time).total_seconds()
         game.save()
         return Response({'response': f'Game {game_hash} unpaused.'}, status=status.HTTP_200_OK)
+
+
+class EndGame(APIView):
+    def get(self, request):
+        bosses = request.query_params.getlist['boss_id']
+        if 'game_id' not in request.query_params:
+            return Response({'error': f'"game_id" param is missing.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        game_hash = request.query_params.get('game_id')
+        try:
+            game = GameSession.objects.get(hash=game_hash)
+        except ObjectDoesNotExist:
+            return Response({'error': f'Game with id {game_hash} not found.'})
+        if game.status == GameSession.CREATED:
+            game.status = GameSession.ENDED
+            game.save()
+            return Response({'response': f'Game session {game_hash} ended.'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'response': f'Game session {game_hash} is not active.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+
+class TransferDrop(APIView):
+    def get(self, request):
+        required_params = ['address', 'captcha']
+
+        for param in required_params:
+            if param not in request.query_params:
+                return Response({'error': f'"{param}" param is missing.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            tezos_user = TezosUser.objects.get(address=request.query_params.get('captcha'))
+        except ObjectDoesNotExist as error:
+            return Response({'error': f'Tezos user with this address not found: {error}'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not tezos_user.success_sign:
+            return Response({'error': f'This user did not yet successfully signed payload.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        captcha_data_for_check = {
+            'secret': settings.CAPTCHA_SECRET,
+            'response': request.query_params.get('captcha')
+        }
+        google_validation_response = requests.post(settings.CAPTCHA_VERIFY_URL, data=captcha_data_for_check)
+        if not json.loads(google_validation_response.text)['success']:
+            return Response({'error': f'Captcha validation error: {google_validation_response.text}'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        drops = Drop.objects.filter(game__player__address=tezos_user.address, game__status=GameSession.ENDED,
+                                    transfer_date=None)
+        if len(drops) == 0:
+            return Response({'response': {'tokens_transfered': 0}}, status=status.HTTP_200_OK)
+        else:
+            pt = pytezos.using(key=settings.PRIVATE_KEY, shell=settings.NETWORK).contract(settings.CONTRACT)
+            contract = pt.contract(settings.CONTRACT)
+            try:
+                tx = contract.transfer([
+                    {
+                        "from_": f'{pt.key.public_key_hash()}',
+                        "txs": [{
+                            "to_": f'{tezos_user.address}',
+                            "token_id": drop.dropped_token.token_id,
+                            "amount": 1
+                        } for drop in drops]
+                    }
+                ]).inject()
+                drops.update(transfer_date=timezone.now())
+                return Response({
+                    'response': {
+                        'tokens_transfered': len(drops),
+                        'transaction_hash': tx['hash']
+                    },
+                }, status=status.HTTP_200_OK)
+            except Exception as error:
+                return Response({'error': f'Tezos error: {error}'}, status=status.HTTP_400_BAD_REQUEST)

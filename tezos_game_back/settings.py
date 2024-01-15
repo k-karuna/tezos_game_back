@@ -24,7 +24,6 @@ load_dotenv(find_dotenv())
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ['SECRET_KEY']
-CAPTCHA_SECRET = os.environ['CAPTCHA_SECRET']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -134,10 +133,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://localhost:6011",
-    "http://45.66.248.137:6011"
+    "http://45.66.248.137:6011",
+    "https://thriving-biscuit-ae1702.netlify.app"
 ]
 
 # Celery settings
 CELERY_BROKER_URL = f'redis://{"redis" if os.environ.get("DOCKER_CONTAINER", None) is not None else "localhost"}:6379/0'
 
-TERMINATE_GAME_SESSION_SECONDS = 60
+CAPTCHA_SECRET = os.environ['CAPTCHA_SECRET']
+CAPTCHA_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify'
+TERMINATE_GAME_SESSION_SECONDS = 60 * 1
+NETWORK = 'ghostnet'
+CONTRACT = 'KT1MQijiCKW4JkodWwj8XSArF4A44oGhWnvV'
+PRIVATE_KEY = os.environ['PRIVATE_KEY']

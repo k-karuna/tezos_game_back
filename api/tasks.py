@@ -11,9 +11,9 @@ def end_game_session(game_hash):
         game.save()
         return f'Gaming session {game_hash} pause seconds setted to 0.'
 
-    if game.status is GameSession.CREATED or GameSession.PAUSED:
+    if game.status == GameSession.ENDED:
+        return f'Gaming session {game_hash} already ended.'
+    elif game.status in {GameSession.CREATED, GameSession.PAUSED}:
         game.status = GameSession.ABANDONED
         game.save()
         return f'Gaming session {game_hash} successfully abandoned.'
-    else:
-        return f'Gaming session {game_hash} already ended.'
