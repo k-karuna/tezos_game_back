@@ -34,8 +34,6 @@ class SignedAddressValidator:
 
 class CaptchaValidator:
     def __call__(self, captcha_value):
-        if len(captcha_value) < 1000:
-            raise ValidationError('Captcha value too short.')
         verified_data = {
             'secret': settings.CAPTCHA_SECRET,
             'response': captcha_value

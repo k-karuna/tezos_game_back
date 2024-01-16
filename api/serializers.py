@@ -24,7 +24,8 @@ class AddressField(serializers.CharField):
 class CaptchaField(serializers.CharField):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('required', True)
-        kwargs.setdefault('max_length', 2048)
+        kwargs.setdefault('min_length', 1000)
+        kwargs.setdefault('max_length', 2000)
         kwargs.setdefault('help_text', 'Google captcha value')
         super().__init__(**kwargs)
 
