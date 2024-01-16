@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', 'localhost', '45.66.248.137', 'static.t
                  'thriving-biscuit-ae1702.netlify.app']
 
 USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
 
