@@ -28,8 +28,14 @@ SECRET_KEY = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', 'localhost', '192.168.1.74', '45.66.248.137',
-                 'thriving-biscuit-ae1702.netlify.app']
+ALLOWED_HOSTS = [
+    '0.0.0.0',
+    '127.0.0.1',
+    'localhost',
+    '45.66.248.137',
+    'static.turborouter.keenetic.pro'
+    'thriving-biscuit-ae1702.netlify.app'
+]
 
 # Application definition
 
@@ -131,6 +137,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://localhost:6011",
     "http://45.66.248.137:6011",
+    "https://static.turborouter.keenetic.pro",
     "https://thriving-biscuit-ae1702.netlify.app"
 ]
 
