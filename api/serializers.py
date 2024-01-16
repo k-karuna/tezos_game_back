@@ -5,8 +5,33 @@ from rest_framework.exceptions import ValidationError
 from pytezos import Key
 
 
+class GameHashField(serializers.CharField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('required', True)
+        kwargs.setdefault('max_length', 32)
+        kwargs.setdefault('help_text', 'Unique game hash 32 char hex string')
+        super().__init__(**kwargs)
+
+
+class AddressField(serializers.CharField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('required', True)
+        kwargs.setdefault('max_length', 36)
+        kwargs.setdefault('help_text', 'Tezos address public key hash, can start with tz1')
+        super().__init__(**kwargs)
+
+
+class CaptchaField(serializers.CharField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('required', True)
+        kwargs.setdefault('max_length', 2048)
+        kwargs.setdefault('help_text', 'Google captcha value')
+        super().__init__(**kwargs)
+
+
 class PublicKeySerializer(serializers.ModelSerializer):
-    public_key = serializers.CharField(required=True, validators=[PublicKeyValidator()])
+    public_key = serializers.CharField(required=True, max_length=54, validators=[PublicKeyValidator()],
+                                       help_text='Tezos address public key, can start with edpk')
 
     class Meta:
         model = TezosUser
@@ -14,7 +39,7 @@ class PublicKeySerializer(serializers.ModelSerializer):
 
 
 class AddressSerializer(serializers.ModelSerializer):
-    address = serializers.CharField(max_length=36, required=True, validators=[SignedAddressValidator()])
+    address = AddressField(validators=[SignedAddressValidator()])
 
     class Meta:
         model = TezosUser
@@ -22,7 +47,7 @@ class AddressSerializer(serializers.ModelSerializer):
 
 
 class UserSignatureSerializer(PublicKeySerializer):
-    signature = serializers.CharField(required=True)
+    signature = serializers.CharField(required=True, min_length=54, help_text='Signature value, can start with edsig')
 
     class Meta(PublicKeySerializer.Meta):
         fields = PublicKeySerializer.Meta.fields + ('signature',)
@@ -45,25 +70,26 @@ class UserSignatureSerializer(PublicKeySerializer):
 
 
 class CaptchaSerializer(serializers.Serializer):
-    captcha = serializers.CharField(max_length=2048, required=True, validators=[CaptchaValidator()])
+    captcha = CaptchaField(validators=[CaptchaValidator()])
 
 
 class GameHashSerializer(serializers.Serializer):
-    game_id = serializers.CharField(required=True, validators=[GameHashValidator()])
+    game_id = GameHashField(validators=[GameHashValidator()])
 
 
 class ActiveGameSerializer(GameHashSerializer):
-    game_id = serializers.CharField(required=True, validators=[GameIsActiveValidator()])
+    game_id = GameHashField(validators=[GameIsActiveValidator()])
 
 
 class PausedGameSerializer(GameHashSerializer):
-    game_id = serializers.CharField(required=True, validators=[GameIsPausedValidator()])
+    game_id = GameHashField(validators=[GameIsPausedValidator()])
 
 
 class TransferDropSerializer(serializers.Serializer):
-    captcha = serializers.CharField(max_length=2048, required=True, validators=[CaptchaValidator()])
-    address = serializers.CharField(max_length=36, required=True, validators=[SignedAddressValidator()])
+    captcha = CaptchaField(validators=[CaptchaValidator()])
+    address = AddressField(validators=[SignedAddressValidator()])
 
 
 class KillBossSerializer(ActiveGameSerializer):
-    boss = serializers.IntegerField(required=True, validators=[KillBossValidator()])
+    boss = serializers.IntegerField(required=True, validators=[KillBossValidator()],
+                                    help_text='Numeric identifier of a Boss.')

@@ -141,6 +141,10 @@ CORS_ALLOWED_ORIGINS = [
 # Celery settings
 CELERY_BROKER_URL = f'redis://{"redis" if os.environ.get("DOCKER_CONTAINER", None) is not None else "localhost"}:6379/0'
 
+SWAGGER_SETTINGS = {
+    "DEFAULT_MODEL_RENDERING": "example"
+}
+
 CAPTCHA_SECRET = os.environ['CAPTCHA_SECRET']
 CAPTCHA_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify'
 TERMINATE_GAME_SESSION_SECONDS = 60 * 1

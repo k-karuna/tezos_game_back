@@ -3,6 +3,7 @@ import random
 from django.utils import timezone
 from django.core.exceptions import MultipleObjectsReturned
 from pytezos import pytezos
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView
@@ -11,10 +12,22 @@ from api.models import Token, Drop, get_payload_for_sign
 from api.serializers import *
 from api.tasks import end_game_session
 
+from drf_yasg import openapi
+
 
 class GetPayload(GenericAPIView):
     serializer_class = PublicKeySerializer
 
+    @swagger_auto_schema(responses={
+        "200": openapi.Response(
+            description="Sample response for successful getting payload",
+            examples={
+                "application/json": {
+                    "payload": "Tezos Signed Message: 2024-01-15T21:01:00.145435 7f490f63fd5141bc9b27e9546d8d74d9",
+                }
+            }
+        )
+    })
     def post(self, request):
         serializer = self.serializer_class(data=self.request.data)
         if not serializer.is_valid():
@@ -35,6 +48,16 @@ class GetPayload(GenericAPIView):
 class VerifyPayload(GenericAPIView):
     serializer_class = UserSignatureSerializer
 
+    @swagger_auto_schema(responses={
+        "200": openapi.Response(
+            description="Sample response for successful signature verification",
+            examples={
+                "application/json": {
+                    "response": "Successfully verified.",
+                }
+            }
+        )
+    })
     def post(self, request):
         serializer = self.serializer_class(data=self.request.data)
         if not serializer.is_valid():
@@ -44,23 +67,55 @@ class VerifyPayload(GenericAPIView):
         user.signature = serializer.validated_data['signature']
         user.success_sign = True
         user.save()
-        return Response({'response': f'Successfully verified.'}, status=status.HTTP_200_OK)
+        return Response({'response': 'Successfully verified.'}, status=status.HTTP_200_OK)
 
 
 class VerifyCaptcha(GenericAPIView):
     serializer_class = CaptchaSerializer
 
+    @swagger_auto_schema(responses={
+        "200": openapi.Response(
+            description="Sample response for successful captcha verification",
+            examples={
+                "application/json": {
+                    "response": "Successfully verified.",
+                }
+            }
+        )
+    })
     def post(self, request):
         serializer = self.serializer_class(data=self.request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({'response': f'Successfully verified.'}, status=status.HTTP_200_OK)
+        return Response({'response': 'Successfully verified.'}, status=status.HTTP_200_OK)
 
 
 class StartGame(GenericAPIView):
     serializer_class = AddressSerializer
 
+    @swagger_auto_schema(
+        operation_description="Starts new game session, return current if provided address already have active session",
+        responses={
+            "200": openapi.Response(
+                description="Sample response for successful started game",
+                examples={
+                    "application/json": {
+                        "response": {
+                            "game_id": "2d946685c41548d7a144873ec3fc9301",
+                            "game_drop": [{
+                                "boss": 1,
+                                "token": 5
+                            }, {
+                                "boss": 15,
+                                "token": 10
+                            }],
+                            "is_new": True
+                        },
+                    }
+                }
+            )
+        })
     def post(self, request):
         serializer = self.serializer_class(data=self.request.data)
         if not serializer.is_valid():
@@ -107,6 +162,16 @@ class StartGame(GenericAPIView):
 class PauseGame(GenericAPIView):
     serializer_class = ActiveGameSerializer
 
+    @swagger_auto_schema(responses={
+        "200": openapi.Response(
+            description="Sample response for successful game paused",
+            examples={
+                "application/json": {
+                    "response": "Game 7f490f63fd5141bc9b27e9546d8d74d9 paused.",
+                }
+            }
+        )
+    })
     def post(self, request):
         serializer = self.serializer_class(data=self.request.data)
         if not serializer.is_valid():
@@ -121,6 +186,16 @@ class PauseGame(GenericAPIView):
 class UnpauseGame(GenericAPIView):
     serializer_class = PausedGameSerializer
 
+    @swagger_auto_schema(responses={
+        "200": openapi.Response(
+            description="Sample response for successful game unpaused",
+            examples={
+                "application/json": {
+                    "response": "Game 7f490f63fd5141bc9b27e9546d8d74d9 unpaused.",
+                }
+            }
+        )
+    })
     def post(self, request):
         serializer = self.serializer_class(data=self.request.data)
         if not serializer.is_valid():
@@ -135,6 +210,18 @@ class UnpauseGame(GenericAPIView):
 class EndGame(GenericAPIView):
     serializer_class = ActiveGameSerializer
 
+    @swagger_auto_schema(
+        operation_description="End active game",
+        responses={
+            "200": openapi.Response(
+                description="Sample response for successful game session ended",
+                examples={
+                    "application/json": {
+                        "response": "Game session 7f490f63fd5141bc9b27e9546d8d74d9 ended.",
+                    }
+                }
+            )
+        })
     def post(self, request):
         serializer = self.serializer_class(data=self.request.data)
         if not serializer.is_valid():
@@ -148,6 +235,21 @@ class EndGame(GenericAPIView):
 class TransferDrop(GenericAPIView):
     serializer_class = TransferDropSerializer
 
+    @swagger_auto_schema(
+        operation_description="Transfer all drops from ended and abandoned games to provided address.",
+        responses={
+            "200": openapi.Response(
+                description="Sample response of a successful transfer for 2 tokens.",
+                examples={
+                    "application/json": {
+                        "response": {
+                            "tokens_transfered": 2,
+                            "operation_hash": "ootF1KoYWnJa9ets9BqmUgVomZNzQE2VDntck1jqzZ8nvXnZ9X7"
+                        },
+                    }
+                }
+            )
+        })
     def post(self, request):
         serializer = self.serializer_class(data=self.request.data)
         if not serializer.is_valid():
@@ -179,7 +281,7 @@ class TransferDrop(GenericAPIView):
                 return Response({
                     'response': {
                         'tokens_transfered': num_transfered,
-                        'transaction_hash': tx['hash']
+                        'operation_hash': tx['hash']
                     },
                 }, status=status.HTTP_200_OK)
             except Exception as error:
@@ -189,6 +291,18 @@ class TransferDrop(GenericAPIView):
 class KillBoss(GenericAPIView):
     serializer_class = KillBossSerializer
 
+    @swagger_auto_schema(
+        operation_description="Kill boss in provided game session",
+        responses={
+            "200": openapi.Response(
+                description="Sample response of a successful killed boss.",
+                examples={
+                    "application/json": {
+                        "response": "Successfully killed."
+                    }
+                }
+            )
+        })
     def post(self, request):
         serializer = self.serializer_class(data=self.request.data)
         if not serializer.is_valid():
@@ -198,4 +312,4 @@ class KillBoss(GenericAPIView):
         drop, created = Drop.objects.get_or_create(game=game, boss=boss)
         drop.boss_killed = True
         drop.save()
-        return Response({'response': f'Successfully killed.'}, status=status.HTTP_200_OK)
+        return Response({'response': 'Successfully killed.'}, status=status.HTTP_200_OK)
