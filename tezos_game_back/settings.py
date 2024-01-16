@@ -28,14 +28,10 @@ SECRET_KEY = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    '0.0.0.0',
-    '127.0.0.1',
-    'localhost',
-    '45.66.248.137',
-    'static.turborouter.keenetic.pro'
-    'thriving-biscuit-ae1702.netlify.app'
-]
+ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', 'localhost', '45.66.248.137', 'static.turborouter.keenetic.pro',
+                 'thriving-biscuit-ae1702.netlify.app']
+
+USE_X_FORWARDED_HOST = True
 
 # Application definition
 
