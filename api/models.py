@@ -1,14 +1,5 @@
-import uuid
-from datetime import datetime
 from django.db import models
-
-
-def get_payload_for_sign():
-    return f"Tezos Signed Message: {datetime.now().isoformat()} {get_uuid_hash()}"
-
-
-def get_uuid_hash():
-    return uuid.uuid4().hex
+from api.utils import get_payload_for_sign, get_uuid_hash
 
 
 class TezosUser(models.Model):
@@ -73,6 +64,7 @@ class Token(models.Model):
 class Drop(models.Model):
     game = models.ForeignKey(GameSession, on_delete=models.SET_NULL, blank=True, null=True)
     boss = models.ForeignKey(Boss, on_delete=models.SET_NULL, blank=True, null=True)
+    boss_killed = models.BooleanField(default=False)
     dropped_token = models.ForeignKey(Token, on_delete=models.SET_NULL, blank=True, null=True)
     transfer_date = models.DateTimeField(blank=True, null=True)
 
