@@ -28,8 +28,8 @@ class GetPayload(GenericAPIView):
             }
         )
     })
-    def post(self, request):
-        serializer = self.serializer_class(data=self.request.data)
+    def get(self, request):
+        serializer = self.serializer_class(data=self.request.query_params)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
