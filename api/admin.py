@@ -1,10 +1,12 @@
 from django.contrib import admin
+
+from api.filters import DropGameIDFilter, DropPlayerFilter
 from api.models import TezosUser, GameSession, Token, Boss, Drop
 
 
 class DropAdmin(admin.ModelAdmin):
     list_display = ['game_hash', 'game_player_address', 'boss_killed', 'dropped_token_name', 'transfer_date']
-    list_filter = ['game__hash', 'game__player', 'boss_killed', 'dropped_token__name']
+    list_filter = [DropGameIDFilter, DropPlayerFilter, 'boss_killed', 'dropped_token__name']
 
     @admin.display(ordering="game__creation_time")
     def game_hash(self, obj):
