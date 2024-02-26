@@ -11,4 +11,5 @@ urlpatterns = [
     path('game/end/', EndGame.as_view()),
     path('game/boss/kill/', KillBoss.as_view()),
     path('drop/transfer/', TransferDrop.as_view()),
+    path('drop/get/', GetDrop.as_view()),
 ]

@@ -1,8 +1,9 @@
 import random
+from pytezos import pytezos
 
 from django.utils import timezone
 from django.core.exceptions import MultipleObjectsReturned
-from pytezos import pytezos
+from django.db.models import Count, F
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
@@ -27,7 +28,7 @@ class GetPayload(GenericAPIView):
                 }
             }
         )
-    })
+    }, query_serializer=serializer_class)
     def get(self, request):
         serializer = self.serializer_class(data=self.request.query_params)
         if not serializer.is_valid():
@@ -286,6 +287,39 @@ class TransferDrop(GenericAPIView):
                 }, status=status.HTTP_200_OK)
             except Exception as error:
                 return Response({'error': f'Tezos error: {error}'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetDrop(GenericAPIView):
+    serializer_class = AddressSerializer
+
+    @swagger_auto_schema(
+        operation_description="Get list of all drops from ended and abandoned games for provided address.",
+        responses={
+            "200": openapi.Response(
+                description="List of tokes that can be minted / transferred.",
+                examples={
+                    "application/json": {
+                        "response": [{"token_id": 1, "amount": 1}]
+                    }
+                }
+            )
+        },
+        query_serializer=serializer_class)
+    def get(self, request):
+        serializer = self.serializer_class(data=self.request.query_params)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        tezos_user = TezosUser.objects.get(address=serializer.validated_data['address'])
+
+        drops = (Drop.objects.filter(game__player__address=tezos_user.address,
+                                     game__status__in=[GameSession.ENDED, GameSession.ABANDONED],
+                                     boss_killed=True,
+                                     dropped_token__isnull=False,
+                                     transfer_date=None)
+                 .values(token_id=F('dropped_token__token_id'))
+                 .annotate(amount=Count('token_id')))
+
+        return Response({'response': drops}, status=status.HTTP_200_OK)
 
 
 class KillBoss(GenericAPIView):
