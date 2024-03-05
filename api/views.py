@@ -153,16 +153,14 @@ class StartGame(GenericAPIView):
                     drop.save()
 
             if add_armor:
-                pass
-
-        game_drop = [{'boss': drop.boss.id, 'token': drop.dropped_token.token_id} for drop in
-                     Drop.objects.filter(game=game)]
-        if add_armor:
-            game_drop.append({'boss': Boss.objects.all()[0].id, 'token': settings.ARMOR_TOKEN_ID})
+                armor_boss = Boss.objects.all().first()
+                armor_token = Token.objects.get(token_id=settings.ARMOR_TOKEN_ID)
+                Drop(game=game, boss=armor_boss, dropped_token=armor_token).save()
 
         response_data = {
             'game_id': game.hash,
-            'game_drop': game_drop,
+            'game_drop': [{'boss': drop.boss.id, 'token': drop.dropped_token.token_id} for drop in
+                          Drop.objects.filter(game=game)],
             'is_new': created
         }
         return Response({'response': response_data}, status=status.HTTP_200_OK)
