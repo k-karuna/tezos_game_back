@@ -122,6 +122,7 @@ class StartGame(GenericAPIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         tezos_user = TezosUser.objects.get(address=serializer.validated_data['address'])
+        add_armor = GameSession.objects.filter(player=tezos_user).count() == 0
 
         try:
             game, created = GameSession.objects.get_or_create(player=tezos_user, status=GameSession.CREATED)
@@ -151,10 +152,17 @@ class StartGame(GenericAPIView):
                     drop = Drop(game=game, boss=boss, dropped_token=chosen_token)
                     drop.save()
 
+            if add_armor:
+                pass
+
+        game_drop = [{'boss': drop.boss.id, 'token': drop.dropped_token.token_id} for drop in
+                     Drop.objects.filter(game=game)]
+        if add_armor:
+            game_drop.append({'boss': Boss.objects.all()[0].id, 'token': settings.ARMOR_TOKEN_ID})
+
         response_data = {
             'game_id': game.hash,
-            'game_drop': [{'boss': drop.boss.id, 'token': drop.dropped_token.token_id}
-                          for drop in Drop.objects.filter(game=game)],
+            'game_drop': game_drop,
             'is_new': created
         }
         return Response({'response': response_data}, status=status.HTTP_200_OK)
@@ -277,11 +285,12 @@ class TransferDrop(GenericAPIView):
                             "amount": 1
                         } for drop in drops]
                     }
-                ]).inject()
-                num_transfered = drops.update(transfer_date=timezone.now())
+                ]).send(min_confirmations=1)
+
+                num_transferred = drops.update(transfer_date=timezone.now())
                 return Response({
                     'response': {
-                        'tokens_transfered': num_transfered,
+                        'tokens_transfered': num_transferred,
                         'operation_hash': tx['hash']
                     },
                 }, status=status.HTTP_200_OK)
