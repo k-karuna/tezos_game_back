@@ -122,7 +122,6 @@ class StartGame(GenericAPIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         tezos_user = TezosUser.objects.get(address=serializer.validated_data['address'])
-        add_armor = GameSession.objects.filter(player=tezos_user).count() == 0
 
         try:
             game, created = GameSession.objects.get_or_create(player=tezos_user, status=GameSession.CREATED)
@@ -131,6 +130,16 @@ class StartGame(GenericAPIView):
             game = GameSession(player=tezos_user, status=GameSession.CREATED)
             game.save()
             created = True
+
+        first_boss = Boss.objects.all().first()
+        armor_token = Token.objects.get(token_id=settings.ARMOR_TOKEN_ID)
+        previous_armor_drops = Drop.objects.filter(game__player=tezos_user, boss=first_boss, dropped_token=armor_token)
+        previous_armor_boss_killed = previous_armor_drops.objects.filter(boss_killed=True).exists()
+        if not previous_armor_drops.exists():
+            armor_drop = Drop(boss=first_boss, dropped_token=armor_token, game=game)
+            armor_drop.save()
+        elif not previous_armor_boss_killed:
+            previous_armor_drops.update(game=game)
 
         if created:
             end_game_session.s(game.hash).apply_async(countdown=settings.TERMINATE_GAME_SESSION_SECONDS)
@@ -151,11 +160,6 @@ class StartGame(GenericAPIView):
                             break
                     drop = Drop(game=game, boss=boss, dropped_token=chosen_token)
                     drop.save()
-
-            if add_armor:
-                armor_boss = Boss.objects.all().first()
-                armor_token = Token.objects.get(token_id=settings.ARMOR_TOKEN_ID)
-                Drop(game=game, boss=armor_boss, dropped_token=armor_token).save()
 
         response_data = {
             'game_id': game.hash,
