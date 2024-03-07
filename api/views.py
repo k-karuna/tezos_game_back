@@ -220,7 +220,7 @@ class UnpauseGame(GenericAPIView):
 
 
 class EndGame(GenericAPIView):
-    serializer_class = ActiveGameSerializer
+    serializer_class = PausedGameSerializer
 
     @swagger_auto_schema(
         operation_description="End active game",
