@@ -70,6 +70,14 @@ class GameIsPausedValidator(GameHashValidator):
             raise ValidationError('Game is not paused.')
 
 
+class GameIsActiveOrPausedValidator(GameHashValidator):
+    def __call__(self, hash_value):
+        super().__call__(hash_value)
+        game = GameSession.objects.get(hash=hash_value)
+        if game.status not in [GameSession.CREATED, GameSession.PAUSED]:
+            raise ValidationError('Game is not created or paused.')
+
+
 class KillBossValidator:
     def __call__(self, boss_id):
         try:

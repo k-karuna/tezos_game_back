@@ -86,6 +86,10 @@ class PausedGameSerializer(GameHashSerializer):
     game_id = GameHashField(validators=[GameIsPausedValidator()])
 
 
+class PausedOrActiveGameSerializer(GameHashSerializer):
+    game_id = GameHashField(validators=[GameIsActiveOrPausedValidator()])
+
+
 class TransferDropSerializer(serializers.Serializer):
     captcha = CaptchaField(validators=[CaptchaValidator()])
     address = AddressField(validators=[SignedAddressValidator()])
