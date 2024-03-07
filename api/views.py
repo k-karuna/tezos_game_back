@@ -1,4 +1,6 @@
 import random
+from datetime import timedelta
+
 from pytezos import pytezos
 
 from django.utils import timezone
@@ -110,8 +112,7 @@ class StartGame(GenericAPIView):
                             }, {
                                 "boss": 15,
                                 "token": 10
-                            }],
-                            "is_new": True
+                            }]
                         },
                     }
                 }
@@ -123,13 +124,13 @@ class StartGame(GenericAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         tezos_user = TezosUser.objects.get(address=serializer.validated_data['address'])
 
-        try:
-            game, created = GameSession.objects.get_or_create(player=tezos_user, status=GameSession.CREATED)
-        except MultipleObjectsReturned:
-            GameSession.objects.filter(player=tezos_user, status=GameSession.CREATED).delete()
-            game = GameSession(player=tezos_user, status=GameSession.CREATED)
-            game.save()
-            created = True
+        last_minute = timezone.now() - timedelta(minutes=1)
+        last_minute_games_count = GameSession.objects.filter(player=tezos_user, creation_time__gte=last_minute).count()
+        drop_is_able = last_minute_games_count <= settings.MAX_GAMES_PER_MINUTE
+
+        GameSession.objects.filter(player=tezos_user, status__in=[GameSession.CREATED, GameSession.PAUSED]).update(
+            status=GameSession.ABANDONED)
+        game = GameSession(player=tezos_user, status=GameSession.CREATED)
 
         first_boss = Boss.objects.all().first()
         armor_token = Token.objects.get(token_id=settings.ARMOR_TOKEN_ID)
@@ -141,7 +142,7 @@ class StartGame(GenericAPIView):
         elif not previous_armor_boss_killed:
             previous_armor_drops.update(game=game)
 
-        if created:
+        if drop_is_able:
             end_game_session.s(game.hash).apply_async(countdown=settings.TERMINATE_GAME_SESSION_SECONDS)
             all_bosses = Boss.objects.all()
             for boss in all_bosses:
@@ -164,8 +165,7 @@ class StartGame(GenericAPIView):
         response_data = {
             'game_id': game.hash,
             'game_drop': [{'boss': drop.boss.id, 'token': drop.dropped_token.token_id} for drop in
-                          Drop.objects.filter(game=game)],
-            'is_new': created
+                          Drop.objects.filter(game=game)]
         }
         return Response({'response': response_data}, status=status.HTTP_200_OK)
 
