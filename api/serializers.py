@@ -91,7 +91,8 @@ class PausedOrActiveGameSerializer(GameHashSerializer):
 
 
 class TransferDropSerializer(serializers.Serializer):
-    captcha = CaptchaField(validators=[CaptchaValidator()])
+    # captcha = CaptchaField(validators=[CaptchaValidator()])
+    captcha = CaptchaField()
     address = AddressField(validators=[SignedAddressValidator()])
 
 
