@@ -288,7 +288,7 @@ class TransferDrop(GenericAPIView):
                             "amount": 1
                         } for drop in drops]
                     }
-                ]).send(min_confirmations=1)
+                ]).inject()
 
                 num_transferred = drops.update(transfer_date=timezone.now())
                 return Response({
