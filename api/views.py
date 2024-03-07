@@ -134,7 +134,7 @@ class StartGame(GenericAPIView):
         first_boss = Boss.objects.all().first()
         armor_token = Token.objects.get(token_id=settings.ARMOR_TOKEN_ID)
         previous_armor_drops = Drop.objects.filter(game__player=tezos_user, boss=first_boss, dropped_token=armor_token)
-        previous_armor_boss_killed = previous_armor_drops.objects.filter(boss_killed=True).exists()
+        previous_armor_boss_killed = previous_armor_drops.filter(boss_killed=True).exists()
         if not previous_armor_drops.exists():
             armor_drop = Drop(boss=first_boss, dropped_token=armor_token, game=game)
             armor_drop.save()
