@@ -131,6 +131,7 @@ class StartGame(GenericAPIView):
         GameSession.objects.filter(player=tezos_user, status__in=[GameSession.CREATED, GameSession.PAUSED]).update(
             status=GameSession.ABANDONED)
         game = GameSession(player=tezos_user, status=GameSession.CREATED)
+        game.save()
 
         first_boss = Boss.objects.all().first()
         armor_token = Token.objects.get(token_id=settings.ARMOR_TOKEN_ID)
