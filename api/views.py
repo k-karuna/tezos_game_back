@@ -288,13 +288,14 @@ class TransferDrop(GenericAPIView):
                             "amount": 1
                         } for drop in drops]
                     }
-                ]).inject()
+                ])
+                injected_tx = tx.send(min_confirmations=1)
 
                 num_transferred = drops.update(transfer_date=timezone.now())
                 return Response({
                     'response': {
                         'tokens_transfered': num_transferred,
-                        'operation_hash': tx['hash']
+                        'operation_hash': injected_tx.hash()
                     },
                 }, status=status.HTTP_200_OK)
             except Exception as error:

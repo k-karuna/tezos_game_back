@@ -5,4 +5,4 @@ Django==5.0
 djangorestframework==3.14.0
 drf-yasg==1.21.7
 django-cors-headers==4.3.1
-pytezos==3.10.3
+pytezos==3.11.3
