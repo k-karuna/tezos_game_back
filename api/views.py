@@ -276,7 +276,7 @@ class TransferDrop(GenericAPIView):
         if len(drops) == 0:
             return Response({'response': {'tokens_transfered': 0}}, status=status.HTTP_200_OK)
         else:
-            pt = pytezos.using(key=settings.PRIVATE_KEY, shell=settings.NETWORK)
+            pt = pytezos.using(key=settings.PRIVATE_KEY, shell=f'https://rpc.tzkt.io/{settings.NETWORK}')
             contract = pt.contract(settings.CONTRACT)
             try:
                 tx = contract.transfer([
