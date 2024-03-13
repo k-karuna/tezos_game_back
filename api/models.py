@@ -40,6 +40,10 @@ class GameSession(models.Model):
     creation_time = models.DateTimeField(auto_now_add=True)
     pause_init_time = models.DateTimeField(blank=True, null=True)
     seconds_on_pause = models.PositiveIntegerField(default=0)
+    score = models.IntegerField(default=0)
+    favourite_weapon = models.CharField(blank=True, null=True, max_length=64)
+    shots_fired = models.IntegerField(default=0)
+    mobs_killed = models.IntegerField(default=0)
 
     def __str__(self):
         return f'{self.creation_time} - {self.player}'

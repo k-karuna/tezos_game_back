@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from api.filters import DropGameIDFilter, DropPlayerFilter
+from api.filters import DropGameIDFilter, DropPlayerFilter, PlayerFilter
 from api.models import TezosUser, GameSession, Token, Boss, Drop, Achievement, UserAchievement
 
 
@@ -23,6 +23,7 @@ class DropAdmin(admin.ModelAdmin):
 
 class GameSessionAdmin(admin.ModelAdmin):
     list_display = ['hash', 'player', 'creation_time', 'status']
+    list_filter = [PlayerFilter, 'status']
 
 
 admin.site.register(TezosUser)

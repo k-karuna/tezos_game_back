@@ -4,7 +4,7 @@ from datetime import timedelta
 from pytezos import pytezos
 
 from django.utils import timezone
-from django.db.models import Count, F
+from django.db.models import Count, F, Max, Sum
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
@@ -219,7 +219,7 @@ class UnpauseGame(GenericAPIView):
 
 
 class EndGame(GenericAPIView):
-    serializer_class = PausedOrActiveGameSerializer
+    serializer_class = EndGameSerializer
 
     @swagger_auto_schema(
         operation_description="End active game",
@@ -239,6 +239,10 @@ class EndGame(GenericAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         game = GameSession.objects.get(hash=serializer.validated_data['game_id'])
         game.status = GameSession.ENDED
+        game.score = serializer.validated_data['score']
+        game.favourite_weapon = serializer.validated_data['favourite_weapon']
+        game.shots_fired = serializer.validated_data['shots_fired']
+        game.mobs_killed = serializer.validated_data['mobs_killed']
         game.save()
         return Response({'response': f'Game session {game.hash} ended.'}, status=status.HTTP_200_OK)
 
@@ -402,7 +406,7 @@ class GetAchievements(GenericAPIView):
         return Response(serialized_achievements.data)
 
 
-class GetStats(GenericAPIView):
+class GetPlayerStats(GenericAPIView):
     serializer_class = AddressSerializer
 
     @swagger_auto_schema(
@@ -412,8 +416,12 @@ class GetStats(GenericAPIView):
                 description="Object with player statistics.",
                 examples={
                     "application/json": {
-                        "ended_games": 4,
-                        "killed_bosses": 16
+                        "games_played": 0,
+                        "bosses_killed": 0,
+                        "best_score": 0,
+                        "mobs_killed": 0,
+                        "shots_fired": 0,
+                        "favourite_weapon": "ZOOOKA"
                     }
                 }
             )
@@ -424,8 +432,14 @@ class GetStats(GenericAPIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         player = TezosUser.objects.get(address=serializer.validated_data['address'])
+        player_games = GameSession.objects.filter(player=player, status=GameSession.ENDED)
         response = {
-            "ended_games": GameSession.objects.filter(player=player, status=GameSession.ENDED).count(),
-            "killed_bosses": Drop.objects.filter(game__player=player, boss_killed=True).count()
+            "games_played": player_games.count(),
+            "bosses_killed": Drop.objects.filter(game__player=player, boss_killed=True).count(),
+            "best_score": player_games.aggregate(Max("score", default=0))['score__max'],
+            "mobs_killed": player_games.aggregate(Sum("mobs_killed", default=0))['mobs_killed__sum'],
+            "shots_fired": player_games.aggregate(Sum("shots_fired", default=0))['shots_fired__sum'],
+            "favourite_weapon": player_games.values('favourite_weapon').annotate(
+                count=Count('favourite_weapon')).order_by('-count').first()['favourite_weapon']
         }
         return Response(response, status=status.HTTP_200_OK)

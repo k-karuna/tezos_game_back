@@ -91,6 +91,13 @@ class PausedOrActiveGameSerializer(GameHashSerializer):
     game_id = GameHashField(validators=[GameIsActiveOrPausedValidator()])
 
 
+class EndGameSerializer(PausedOrActiveGameSerializer):
+    score = serializers.IntegerField(required=True)
+    favourite_weapon = serializers.CharField(required=True)
+    shots_fired = serializers.IntegerField(required=True)
+    mobs_killed = serializers.IntegerField(required=True)
+
+
 class TransferDropSerializer(serializers.Serializer):
     # captcha = CaptchaField(validators=[CaptchaValidator()])
     captcha = CaptchaField()

@@ -35,3 +35,13 @@ class DropPlayerFilter(InputFilter):
         if self.value() is not None:
             address = self.value()
             return queryset.filter(game__player__address__contains=address)
+
+
+class PlayerFilter(InputFilter):
+    parameter_name = 'player_address'
+    title = 'Player address'
+
+    def queryset(self, request, queryset):
+        if self.value() is not None:
+            address = self.value()
+            return queryset.filter(player__address__contains=address)
