@@ -400,3 +400,32 @@ class GetAchievements(GenericAPIView):
         user_achievements = UserAchievement.objects.filter(player__address=serializer.validated_data['address'])
         serialized_achievements = UserAchievementSerializer(user_achievements, many=True)
         return Response(serialized_achievements.data)
+
+
+class GetStats(GenericAPIView):
+    serializer_class = AddressSerializer
+
+    @swagger_auto_schema(
+        operation_description="Returns player statistics.",
+        responses={
+            "200": openapi.Response(
+                description="Object with player statistics.",
+                examples={
+                    "application/json": {
+                        "ended_games": 4,
+                        "killed_bosses": 16
+                    }
+                }
+            )
+        },
+        query_serializer=serializer_class)
+    def get(self, request):
+        serializer = self.serializer_class(data=self.request.query_params)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        player = TezosUser.objects.get(address=serializer.validated_data['address'])
+        response = {
+            "ended_games": GameSession.objects.filter(player=player, status=GameSession.ENDED).count(),
+            "killed_bosses": Drop.objects.filter(game__player=player, boss_killed=True).count()
+        }
+        return Response(response, status=status.HTTP_200_OK)
