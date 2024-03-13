@@ -28,8 +28,13 @@ SECRET_KEY = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', 'localhost', '45.66.248.137', 'static.turborouter.keenetic.pro',
-                 'thriving-biscuit-ae1702.netlify.app']
+ALLOWED_HOSTS = ['0.0.0.0',
+                 '127.0.0.1',
+                 'localhost',
+                 '45.66.248.137',
+                 'static.turborouter.keenetic.pro',
+                 'thriving-biscuit-ae1702.netlify.app',
+                 'game.baking-bad.org']
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -135,7 +140,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:6011",
     "http://45.66.248.137:6011",
     "https://static.turborouter.keenetic.pro",
-    "https://thriving-biscuit-ae1702.netlify.app"
+    "https://thriving-biscuit-ae1702.netlify.app",
+    "https://game.baking-bad.org"
 ]
 
 # Celery settings
