@@ -102,4 +102,4 @@ class UserAchievement(models.Model):
         return round(self.current_progress / self.achievement.target_progress, 1) * 100
 
     def __str__(self):
-        return f'{self.player}: {self.achievement.name}, {self.percent_progress}%'
+        return f'{self.player}: {self.achievement.name}, progress: {self.percent_progress}%'

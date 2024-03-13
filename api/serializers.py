@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from api.utils import get_hex_payload
 from api.validators import *
+from api.models import Achievement, UserAchievement
 from rest_framework.exceptions import ValidationError
 from pytezos import Key
 
@@ -99,3 +100,19 @@ class TransferDropSerializer(serializers.Serializer):
 class KillBossSerializer(ActiveGameSerializer):
     boss = serializers.IntegerField(required=True, validators=[KillBossValidator()],
                                     help_text='Numeric identifier of a Boss.')
+
+
+class AchievementSerializer(serializers.ModelSerializer):
+    token_id = serializers.IntegerField(source='reward_token.token_id')
+
+    class Meta:
+        model = Achievement
+        fields = ('name', 'token_id')
+
+
+class UserAchievementSerializer(serializers.ModelSerializer):
+    achievement = AchievementSerializer()
+
+    class Meta:
+        model = UserAchievement
+        fields = ('achievement', 'percent_progress')

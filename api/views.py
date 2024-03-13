@@ -369,3 +369,34 @@ class KillBoss(GenericAPIView):
             pass
 
         return Response({'response': 'Successfully killed.'}, status=status.HTTP_200_OK)
+
+
+class GetAchievements(GenericAPIView):
+    serializer_class = AddressSerializer
+
+    @swagger_auto_schema(
+        operation_description="Returns list of player game achievements.",
+        responses={
+            "200": openapi.Response(
+                description="List of player game achievements.",
+                examples={
+                    "application/json": [
+                        {
+                            "achievement": {
+                                "name": "Kill 10 bosses",
+                                "token_id": 27
+                            },
+                            "percent_progress": 20
+                        }
+                    ]
+                }
+            )
+        },
+        query_serializer=serializer_class)
+    def get(self, request):
+        serializer = self.serializer_class(data=self.request.query_params)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user_achievements = UserAchievement.objects.filter(player__address=serializer.validated_data['address'])
+        serialized_achievements = UserAchievementSerializer(user_achievements, many=True)
+        return Response(serialized_achievements.data)
