@@ -93,7 +93,7 @@ class PausedOrActiveGameSerializer(GameHashSerializer):
 
 class EndGameSerializer(PausedOrActiveGameSerializer):
     score = serializers.IntegerField(required=False, default=0)
-    favourite_weapon = serializers.CharField(required=False)
+    favourite_weapon = serializers.CharField(required=False, default=None)
     shots_fired = serializers.IntegerField(required=False, default=0)
     mobs_killed = serializers.IntegerField(required=False, default=0)
 
