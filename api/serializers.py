@@ -31,7 +31,7 @@ class CaptchaField(serializers.CharField):
 
 
 class PublicKeySerializer(serializers.ModelSerializer):
-    public_key = serializers.CharField(required=True, max_length=54, validators=[PublicKeyValidator()],
+    public_key = serializers.CharField(required=True, validators=[PublicKeyValidator()],
                                        help_text='Tezos address public key, can start with edpk')
 
     class Meta:
