@@ -365,10 +365,12 @@ class KillBoss(GenericAPIView):
 
         try:
             kill_boss_achievement = Achievement.objects.get(type=Achievement.KILL_BOSS)
-            user_achievement = UserAchievement.objects.get_or_create(player=game.player,
-                                                                     achievement=kill_boss_achievement)
-            user_achievement.current_progress += 1
-            user_achievement.save()
+            user_achievement, created = UserAchievement.objects.get_or_create(player=game.player,
+                                                                              achievement=kill_boss_achievement)
+
+            if user_achievement.current_progress < user_achievement.achievement.target_progress:
+                user_achievement.current_progress += 1
+                user_achievement.save()
         except ObjectDoesNotExist:
             pass
 
