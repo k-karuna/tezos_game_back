@@ -435,13 +435,15 @@ class GetPlayerStats(GenericAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         player = TezosUser.objects.get(address=serializer.validated_data['address'])
         player_games = GameSession.objects.filter(player=player, status=GameSession.ENDED)
+        favourite_weapon = \
+        player_games.values('favourite_weapon').annotate(count=Count('favourite_weapon')).order_by('-count').first()[
+            'favourite_weapon']
         response = {
             "games_played": player_games.count(),
             "bosses_killed": Drop.objects.filter(game__player=player, boss_killed=True).count(),
             "best_score": player_games.aggregate(Max("score", default=0))['score__max'],
             "mobs_killed": player_games.aggregate(Sum("mobs_killed", default=0))['mobs_killed__sum'],
             "shots_fired": player_games.aggregate(Sum("shots_fired", default=0))['shots_fired__sum'],
-            "favourite_weapon": player_games.values('favourite_weapon').annotate(
-                count=Count('favourite_weapon')).order_by('-count').first()['favourite_weapon']
+            "favourite_weapon": favourite_weapon if favourite_weapon is not None else ""
         }
         return Response(response, status=status.HTTP_200_OK)
