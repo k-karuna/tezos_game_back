@@ -19,3 +19,7 @@ def get_payload_for_sign():
 
 def get_uuid_hash():
     return uuid.uuid4().hex
+
+
+def get_shortened_address(address):
+    return address[:4] + "···" + address[-6:]

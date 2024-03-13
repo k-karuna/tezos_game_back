@@ -1,5 +1,5 @@
 from django.db import models
-from api.utils import get_payload_for_sign, get_uuid_hash
+from api.utils import get_payload_for_sign, get_uuid_hash, get_shortened_address
 
 
 class TezosUser(models.Model):
@@ -11,7 +11,7 @@ class TezosUser(models.Model):
     registration_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.address
+        return get_shortened_address(self.address)
 
 
 class Boss(models.Model):
@@ -74,3 +74,32 @@ class Drop(models.Model):
 
     def __str__(self):
         return f'{self.game}, {self.dropped_token}'
+
+
+class Achievement(models.Model):
+    KILL_BOSS = 0
+    PLAY_GAMES = 1
+    TYPES = [
+        (KILL_BOSS, "Kill boss"),
+        (PLAY_GAMES, "Play games"),
+    ]
+    name = models.CharField(blank=True, null=True, max_length=256)
+    type = models.PositiveSmallIntegerField(choices=TYPES, default=KILL_BOSS)
+    target_progress = models.IntegerField(default=1)
+    reward_token = models.ForeignKey(Token, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.name}, reward: {self.reward_token.name}'
+
+
+class UserAchievement(models.Model):
+    player = models.ForeignKey(TezosUser, on_delete=models.CASCADE)
+    achievement = models.ForeignKey(Achievement, on_delete=models.SET_NULL, blank=True, null=True)
+    current_progress = models.IntegerField(default=0)
+
+    @property
+    def percent_progress(self):
+        return round(self.current_progress / self.achievement.target_progress, 1) * 100
+
+    def __str__(self):
+        return f'{self.player}: {self.achievement.name}, {self.percent_progress}%'

@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from api.filters import DropGameIDFilter, DropPlayerFilter
-from api.models import TezosUser, GameSession, Token, Boss, Drop
+from api.models import TezosUser, GameSession, Token, Boss, Drop, Achievement, UserAchievement
 
 
 class DropAdmin(admin.ModelAdmin):
@@ -30,3 +30,5 @@ admin.site.register(GameSession, GameSessionAdmin)
 admin.site.register(Token)
 admin.site.register(Boss)
 admin.site.register(Drop, DropAdmin)
+admin.site.register(Achievement)
+admin.site.register(UserAchievement)

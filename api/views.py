@@ -4,14 +4,13 @@ from datetime import timedelta
 from pytezos import pytezos
 
 from django.utils import timezone
-from django.core.exceptions import MultipleObjectsReturned
 from django.db.models import Count, F
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView
 
-from api.models import Token, Drop, get_payload_for_sign
+from api.models import Token, Drop, get_payload_for_sign, Achievement, UserAchievement
 from api.serializers import *
 from api.tasks import end_game_session
 
@@ -359,4 +358,14 @@ class KillBoss(GenericAPIView):
         drop, created = Drop.objects.get_or_create(game=game, boss=boss)
         drop.boss_killed = True
         drop.save()
+
+        try:
+            kill_boss_achievement = Achievement.objects.get(type=Achievement.KILL_BOSS)
+            user_achievement = UserAchievement.objects.get_or_create(player=game.player,
+                                                                     achievement=kill_boss_achievement)
+            user_achievement.current_progress += 1
+            user_achievement.save()
+        except ObjectDoesNotExist:
+            pass
+
         return Response({'response': 'Successfully killed.'}, status=status.HTTP_200_OK)
