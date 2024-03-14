@@ -419,7 +419,7 @@ class GetPlayerStats(GenericAPIView):
                 examples={
                     "application/json": {
                         "response": {
-                            "games_played": 0
+                            "games_played": 0,
                             "bosses_killed": 0,
                             "best_score": 0,
                             "mobs_killed": 0,
