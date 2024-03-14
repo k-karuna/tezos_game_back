@@ -418,12 +418,14 @@ class GetPlayerStats(GenericAPIView):
                 description="Object with player statistics.",
                 examples={
                     "application/json": {
-                        "games_played": 0,
-                        "bosses_killed": 0,
-                        "best_score": 0,
-                        "mobs_killed": 0,
-                        "shots_fired": 0,
-                        "favourite_weapon": "ZOOOKA"
+                        "response": {
+                            "games_played": 0
+                            "bosses_killed": 0,
+                            "best_score": 0,
+                            "mobs_killed": 0,
+                            "shots_fired": 0,
+                            "favourite_weapon": "ZOOOKA"
+                        }
                     }
                 }
             )
@@ -435,9 +437,8 @@ class GetPlayerStats(GenericAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         player = TezosUser.objects.get(address=serializer.validated_data['address'])
         player_games = GameSession.objects.filter(player=player, status=GameSession.ENDED)
-        favourite_weapon = \
-        player_games.values('favourite_weapon').annotate(count=Count('favourite_weapon')).order_by('-count').first()[
-            'favourite_weapon']
+        favourite_weapon = player_games.values('favourite_weapon').annotate(count=Count('favourite_weapon')).order_by(
+            '-count').first()['favourite_weapon']
         response = {
             "games_played": player_games.count(),
             "bosses_killed": Drop.objects.filter(game__player=player, boss_killed=True).count(),
@@ -446,4 +447,4 @@ class GetPlayerStats(GenericAPIView):
             "shots_fired": player_games.aggregate(Sum("shots_fired", default=0))['shots_fired__sum'],
             "favourite_weapon": favourite_weapon if favourite_weapon is not None else ""
         }
-        return Response(response, status=status.HTTP_200_OK)
+        return Response({'response': response}, status=status.HTTP_200_OK)
