@@ -142,7 +142,7 @@ class StartGame(GenericAPIView):
         elif not previous_armor_boss_killed:
             previous_armor_drops.update(game=game)
 
-        if drop_is_able and not previous_armor_boss_killed:
+        if drop_is_able and previous_armor_boss_killed:
             end_game_session.s(game.hash).apply_async(countdown=settings.TERMINATE_GAME_SESSION_SECONDS)
             all_bosses = Boss.objects.all()
             for boss in all_bosses:
