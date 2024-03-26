@@ -60,6 +60,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     # 'django.middleware.csrf.CsrfViewMiddleware',
+    'api.logger.LogBadRequestMiddleware',
     'api.middleware.DisableCSRFMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -152,6 +153,24 @@ CELERY_BROKER_URL = f'redis://{"redis" if os.environ.get("DOCKER_CONTAINER", Non
 
 SWAGGER_SETTINGS = {
     "DEFAULT_MODEL_RENDERING": "example"
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
 }
 
 CAPTCHA_SECRET = os.environ['CAPTCHA_SECRET']
