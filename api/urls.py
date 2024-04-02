@@ -14,4 +14,5 @@ urlpatterns = [
     path('drop/get/', GetDrop.as_view()),
     path('achievements/get/', GetAchievements.as_view()),
     path('player/stats/get/', GetPlayerStats.as_view()),
+    path('player/games/has-active/', HasActiveGames.as_view()),
 ]

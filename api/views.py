@@ -450,3 +450,31 @@ class GetPlayerStats(GenericAPIView):
             "favourite_weapon": favourite_weapon if favourite_weapon is not None else ""
         }
         return Response({'response': response}, status=status.HTTP_200_OK)
+
+
+class HasActiveGames(GenericAPIView):
+    serializer_class = AddressSerializer
+
+    @swagger_auto_schema(
+        operation_description="Returns info whether player has active game sessions.",
+        responses={
+            "200": openapi.Response(
+                description="Response object with bool info about active game sessions.",
+                examples={
+                    "application/json": {
+                        "response": {
+                            "has_games": True
+                        }
+                    }
+                }
+            )
+        },
+        query_serializer=serializer_class)
+    def get(self, request):
+        serializer = self.serializer_class(data=self.request.query_params)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        player = TezosUser.objects.get(address=serializer.validated_data['address'])
+        has_games = GameSession.objects.filter(player=player,
+                                               status__in=[GameSession.CREATED, GameSession.PAUSED]).exists()
+        return Response({'response': {'has_games': has_games}}, status=status.HTTP_200_OK)
