@@ -142,9 +142,11 @@ class StartGame(GenericAPIView):
         elif not previous_armor_boss_killed:
             previous_armor_drops.update(game=game)
 
-        if drop_is_able and previous_armor_boss_killed:
+        if drop_is_able:
             # end_game_session.s(game.hash).apply_async(countdown=settings.TERMINATE_GAME_SESSION_SECONDS)
             all_bosses = Boss.objects.all()
+            if not previous_armor_boss_killed:
+                all_bosses = all_bosses.exclude(id=first_boss.id)
             for boss in all_bosses:
                 random_number_for_boss = random.random() * 100
                 boss_dropped = random_number_for_boss <= boss.drop_chance
