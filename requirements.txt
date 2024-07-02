@@ -1,6 +1,4 @@
 python-dotenv==1.0.0
-redis==5.0.1
-celery==5.3.6
 Django==5.0
 djangorestframework==3.14.0
 drf-yasg==1.21.7

@@ -148,9 +148,6 @@ CORS_ALLOWED_ORIGINS = [
 
 CSRF_TRUSTED_ORIGINS = ["https://game.baking-bad.org"]
 
-# Celery settings
-CELERY_BROKER_URL = f'redis://{"redis" if os.environ.get("DOCKER_CONTAINER", None) is not None else "localhost"}:6379/0'
-
 SWAGGER_SETTINGS = {
     "DEFAULT_MODEL_RENDERING": "example"
 }

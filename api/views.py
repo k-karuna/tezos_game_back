@@ -12,7 +12,6 @@ from rest_framework.generics import GenericAPIView
 
 from api.models import Token, Drop, get_payload_for_sign, Achievement, UserAchievement
 from api.serializers import *
-from api.tasks import end_game_session
 
 from drf_yasg import openapi
 
@@ -143,7 +142,6 @@ class StartGame(GenericAPIView):
             previous_armor_drops.update(game=game)
 
         if drop_is_able:
-            # end_game_session.s(game.hash).apply_async(countdown=settings.TERMINATE_GAME_SESSION_SECONDS)
             all_bosses = Boss.objects.all()
             if not previous_armor_boss_killed:
                 all_bosses = all_bosses.exclude(id=first_boss.id)
